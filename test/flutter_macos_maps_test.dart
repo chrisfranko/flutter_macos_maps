@@ -7,13 +7,13 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 class MockFlutterMacosMapsPlatform
     with MockPlatformInterfaceMixin
     implements FlutterMacosMapsPlatform {
-
   @override
   Future<String?> getPlatformVersion() => Future.value('42');
 }
 
 void main() {
-  final FlutterMacosMapsPlatform initialPlatform = FlutterMacosMapsPlatform.instance;
+  final FlutterMacosMapsPlatform initialPlatform =
+      FlutterMacosMapsPlatform.instance;
 
   test('$MethodChannelFlutterMacosMaps is the default instance', () {
     expect(initialPlatform, isInstanceOf<MethodChannelFlutterMacosMaps>());

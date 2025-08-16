@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'flutter_macos_maps_platform_interface.dart';
 
 // ---------- Small value types ----------
 class LatLng {
@@ -8,14 +9,15 @@ class LatLng {
   const LatLng(this.lat, this.lon);
 
   Map<String, double> toMap() => {'lat': lat, 'lon': lon};
-  static LatLng fromMap(Map m) => LatLng((m['lat'] as num).toDouble(), (m['lon'] as num).toDouble());
+  static LatLng fromMap(Map m) =>
+      LatLng((m['lat'] as num).toDouble(), (m['lon'] as num).toDouble());
 }
 
 class CameraPosition {
   final LatLng target;
   final double? altitude; // meters
-  final double? pitch;    // degrees
-  final double? heading;  // degrees
+  final double? pitch; // degrees
+  final double? heading; // degrees
   final double? latDelta; // for region-style zoom
   final double? lonDelta;
   const CameraPosition({
@@ -28,21 +30,19 @@ class CameraPosition {
   });
 
   Map<String, dynamic> toMap() => {
-        'target': target.toMap(),
-        if (altitude != null) 'altitude': altitude,
-        if (pitch != null) 'pitch': pitch,
-        if (heading != null) 'heading': heading,
-        if (latDelta != null) 'latDelta': latDelta,
-        if (lonDelta != null) 'lonDelta': lonDelta,
-      };
+    'target': target.toMap(),
+    if (altitude != null) 'altitude': altitude,
+    if (pitch != null) 'pitch': pitch,
+    if (heading != null) 'heading': heading,
+    if (latDelta != null) 'latDelta': latDelta,
+    if (lonDelta != null) 'lonDelta': lonDelta,
+  };
 }
 
 enum MapType { standard, satellite, hybrid }
-int _mapTypeToInt(MapType t) => {
-      MapType.standard: 0,
-      MapType.satellite: 1,
-      MapType.hybrid: 2,
-    }[t]!;
+
+int _mapTypeToInt(MapType t) =>
+    {MapType.standard: 0, MapType.satellite: 1, MapType.hybrid: 2}[t]!;
 
 // ---------- Events ----------
 class _MapEvent {
@@ -52,7 +52,10 @@ class _MapEvent {
 
   static _MapEvent from(dynamic e) {
     final m = (e as Map).cast<String, dynamic>();
-    return _MapEvent(m['event'] as String, (m['data'] as Map).cast<String, dynamic>());
+    return _MapEvent(
+      m['event'] as String,
+      (m['data'] as Map).cast<String, dynamic>(),
+    );
   }
 }
 
@@ -65,12 +68,22 @@ class RegionChanged {
 typedef OverlayId = String;
 typedef AnnotationId = String;
 
+// ---------- Main Plugin Class ----------
+class FlutterMacosMaps {
+  Future<String?> getPlatformVersion() {
+    return FlutterMacosMapsPlatform.instance.getPlatformVersion();
+  }
+}
+
 // ---------- Controller ----------
 class FlutterMacosMapsController {
   FlutterMacosMapsController._(this._id)
-      : _method = MethodChannel('flutter_macos_maps/map_$_id'),
-        _events = EventChannel('flutter_macos_maps/events_$_id') {
-    _eventStream = _events.receiveBroadcastStream().map(_MapEvent.from).asBroadcastStream();
+    : _method = MethodChannel('flutter_macos_maps/map_$_id'),
+      _events = EventChannel('flutter_macos_maps/events_$_id') {
+    _eventStream = _events
+        .receiveBroadcastStream()
+        .map(_MapEvent.from)
+        .asBroadcastStream();
   }
 
   final int _id;
@@ -78,13 +91,21 @@ class FlutterMacosMapsController {
   final EventChannel _events;
   late final Stream<_MapEvent> _eventStream;
 
+  /// Returns the unique ID for this controller instance
+  int get id => _id;
+
   // General event streams (filtering by 'event' field)
-  Stream<LatLng> get onTap => _eventStream.where((e) => e.type == 'tap').map((e) => LatLng.fromMap(e.data));
-  Stream<LatLng> get onLongPress =>
-      _eventStream.where((e) => e.type == 'longPress').map((e) => LatLng.fromMap(e.data));
-  Stream<AnnotationId> get onAnnotationTap =>
-      _eventStream.where((e) => e.type == 'annotationTap').map((e) => e.data['id'] as String);
-  Stream<RegionChanged> get onRegionChanged => _eventStream.where((e) => e.type == 'regionChanged').map((e) {
+  Stream<LatLng> get onTap => _eventStream
+      .where((e) => e.type == 'tap')
+      .map((e) => LatLng.fromMap(e.data));
+  Stream<LatLng> get onLongPress => _eventStream
+      .where((e) => e.type == 'longPress')
+      .map((e) => LatLng.fromMap(e.data));
+  Stream<AnnotationId> get onAnnotationTap => _eventStream
+      .where((e) => e.type == 'annotationTap')
+      .map((e) => e.data['id'] as String);
+  Stream<RegionChanged> get onRegionChanged =>
+      _eventStream.where((e) => e.type == 'regionChanged').map((e) {
         final cam = e.data['camera'] as Map;
         return RegionChanged(
           CameraPosition(
@@ -101,22 +122,25 @@ class FlutterMacosMapsController {
 
   // Camera controls
   Future<void> setCamera(CameraPosition camera, {bool animated = true}) =>
-      _method.invokeMethod('setCamera', {'camera': camera.toMap(), 'animated': animated});
+      _method.invokeMethod('setCamera', {
+        'camera': camera.toMap(),
+        'animated': animated,
+      });
 
   Future<void> fitBounds({
     required LatLng northEast,
     required LatLng southWest,
     double padding = 24.0,
     bool animated = true,
-  }) =>
-      _method.invokeMethod('fitBounds', {
-        'ne': northEast.toMap(),
-        'sw': southWest.toMap(),
-        'padding': padding,
-        'animated': animated,
-      });
+  }) => _method.invokeMethod('fitBounds', {
+    'ne': northEast.toMap(),
+    'sw': southWest.toMap(),
+    'padding': padding,
+    'animated': animated,
+  });
 
-  Future<void> setMapType(MapType type) => _method.invokeMethod('setMapType', {'type': _mapTypeToInt(type)});
+  Future<void> setMapType(MapType type) =>
+      _method.invokeMethod('setMapType', {'type': _mapTypeToInt(type)});
 
   // Annotations
   Future<AnnotationId> addAnnotation({
@@ -189,7 +213,8 @@ class FlutterMacosMapsController {
     return res!;
   }
 
-  Future<void> removeOverlay(OverlayId id) => _method.invokeMethod('removeOverlay', {'id': id});
+  Future<void> removeOverlay(OverlayId id) =>
+      _method.invokeMethod('removeOverlay', {'id': id});
   Future<void> clearOverlays() => _method.invokeMethod('clearOverlays');
 }
 
@@ -208,7 +233,8 @@ class _FlutterMacosMapsViewState extends State<FlutterMacosMapsView> {
     return AppKitView(
       viewType: 'com.yourorg.flutter_macos_maps/map',
       creationParams: {
-        if (widget.initialCamera != null) 'camera': widget.initialCamera!.toMap(),
+        if (widget.initialCamera != null)
+          'camera': widget.initialCamera!.toMap(),
       },
       creationParamsCodec: const StandardMessageCodec(),
       onPlatformViewCreated: (id) {

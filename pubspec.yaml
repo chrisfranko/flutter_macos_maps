@@ -1,7 +1,7 @@
 name: flutter_macos_maps
 description: "A new Flutter plugin project."
 version: 0.1.0
-homepage:
+homepage: https://github.com/chrisfranko/flutter_macos_maps
 
 environment:
   sdk: ^3.9.0

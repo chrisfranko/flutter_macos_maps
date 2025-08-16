@@ -1,5 +1,5 @@
 name: flutter_macos_maps
-description: "A new Flutter plugin project."
+description: "A Flutter plugin that provides native macOS MapKit integration with support for annotations, overlays, camera controls, and interactive map events."
 version: 0.1.0
 homepage: https://github.com/chrisfranko/flutter_macos_maps
 
